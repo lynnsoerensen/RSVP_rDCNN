@@ -263,7 +263,7 @@ def showExampleImageTraces(model, figurename, images=np.arange(6), samples=6, tr
 
 
 
-def showExamplePrototypeTrace(models, samples=6, trial=5, colors=None, data=None):
+def showExamplePrototypeTrace(models, samples=6, trial=5, colors=None, data=None, filename='PrototypeTrace_Example'):
     data = data if data is not None else collectPrototypeTraces(models, samples, trial)
 
     fig_dir = Path(__file__).parent.parent / 'figures'
@@ -290,6 +290,6 @@ def showExamplePrototypeTrace(models, samples=6, trial=5, colors=None, data=None
     sns.despine()
     plt.tight_layout()
 
-    plt.savefig(fig_dir / 'PrototypeTrace_Example.pdf', dpi=300, transparent=True)
-    plt.savefig(fig_dir / 'PrototypeTrace_Example.png')
+    plt.savefig(fig_dir / f'{filename}.pdf', dpi=300, transparent=True)
+    plt.savefig(fig_dir / f'{filename}.png')
 

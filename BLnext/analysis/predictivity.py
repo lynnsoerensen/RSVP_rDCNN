@@ -128,8 +128,8 @@ def computeSingleTrialCorr(PPC, humanPredictions, duration, num_bootstraps=1000,
              'Rho': spearmanr(PPC[nan_idx_current], detectionrate_current[nan_idx_current])[0]}])
 
         if return_data == True:
-            result = [result, pd.DataFrame({'PPC':PPC[nan_idx_current],
-                           'Response rate': detectionrate_current[nan_idx_current]})]
+            result = [result, pd.DataFrame({'PPC': PPC,
+                                            'Response rate': detectionrate_current})]
 
     else:
         bootstraps = []

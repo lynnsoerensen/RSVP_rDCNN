@@ -14,6 +14,7 @@ import seaborn as sns
 import numpy as np
 from BLnext.analysis.adaptation import showExampleAdaptation
 from BLnext.analysis.trials import showExampleImageTrace, showExamplePrototypeTrace, showExampleImageTraces, showExampleCategoryTrace
+from BLnext.analysis.ecoset import showPerformanceEcoset
 from BLnext.analysis.performance import showPerformance, showHumanPerformance, showHumanPerformanceDetailed, showPPCs, comparePrototypePerformance
 from BLnext.analysis.predictivity import showPredictivity, comparePredictivity_samples, comparePredictivity_VE, showSingleTrialCorr
 from BLnext.analysis.stats import reportSampleStats, reportdPrimeStats
@@ -49,7 +50,6 @@ def paper_figures():
     [old_colors.append(colors[c]) for c in [0, 2, 3, 6, 4]]
 
     sdt_colors = sns.xkcd_palette(['teal', 'orange'])
-    #[sdt_colors.append(sns.xkcd_palette([c][0])) for c in ['teal', 'orange']]
 
     seq_colors = []
     [seq_colors.append(colors[c]) for c in [1, -1, 2, 3, 4, -2]]
@@ -89,6 +89,8 @@ def paper_figures():
 
     showPPCs({'NoAdaptation': {'Alpha': [0], 'Beta': 0}}, [8], colors=sdt_colors)
 
+    showPerformanceEcoset(models, samples, 'Ecoset-performance_BLnext', colors=all_colors)
+
     _logger.info("Figure: RSVP performance for humans")
     showHumanPerformance(colors=human_color)
     showHumanPerformanceDetailed(colors=human_color)
@@ -104,13 +106,30 @@ def paper_figures():
     comparePrototypePerformance(controlModels, samplesControl, prototypes, 'RSVP-performance_controls_prototypes', colors=control_colors)
 
     _logger.info("Figure: Model predictivity for human single trials")
-    showPredictivity(models_blnext, samples, durations, 'RSVP-predictivity_BLnext_presentation', colors=old_colors[:2])#blnext_colors)
+
+    # Hit (model + human)
+    showExamplePrototypeTrace({'Power': {'Alpha': [0.96, 0.75], 'Beta': 0.15}}, samples=8, colors=[(0.5, 0.5, 0.5)],
+                              trial=(1 + 11), filename='PrototypeTrace_Trial1')
+    # CR (model + human)
+    showExamplePrototypeTrace({'Power': {'Alpha': [0.96, 0.75], 'Beta': 0.15}}, samples=8, colors=[(0.5, 0.5, 0.5)],
+                              trial=(12 + 11), filename='PrototypeTrace_Trial12')
+    # Incorret model, correct human)
+    showExamplePrototypeTrace({'Power': {'Alpha': [0.96, 0.75], 'Beta': 0.15}}, samples=8, colors=[(0.5, 0.5, 0.5)],
+                             trial=(164 + 11), filename='PrototypeTrace_Trial164')
+
+    # correct model, incorrect human)
+    showExamplePrototypeTrace({'Power': {'Alpha': [0.96, 0.75], 'Beta': 0.15}}, samples=8, colors=[(0.5, 0.5, 0.5)],
+                             trial=(91 + 11), filename='PrototypeTrace_Trial91')
+
+    showSingleTrialCorr({'Power': {'Alpha': [0.96, 0.75], 'Beta': 0.15}}, 8, 0.08, colors=[(0.5, 0.5, 0.5)])
+
+    showPredictivity(models_blnext, samples, durations, 'RSVP-predictivity_BLnext_presentation',
+                     colors=old_colors[:2])  # blnext_colors)
     showPredictivity(controlModels, samples, durations, 'RSVP-predictivity_controls', colors=control_colors)
 
     comparePredictivity_samples(models, samples, durations, colors=all_colors)
     comparePredictivity_VE(models, samples, durations, colors=all_colors)
 
-    showSingleTrialCorr({'Power': {'Alpha': [0.96, 0.75], 'Beta': 0.15}}, 8, 0.08, colors=[(0.5, 0.5, 0.5)])
 
     sampleStats = reportSampleStats()
     _logger.info(sampleStats)
