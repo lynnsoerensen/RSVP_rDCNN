@@ -14,7 +14,7 @@ import seaborn as sns
 import numpy as np
 from BLnext.analysis.adaptation import showExampleAdaptation
 from BLnext.analysis.trials import showExampleImageTrace, showExamplePrototypeTrace, showExampleImageTraces, showExampleCategoryTrace
-from BLnext.analysis.ecoset import showPerformanceEcoset
+from BLnext.analysis.ecoset import showPerformanceEcoset, showPerformanceEcoset_v2
 from BLnext.analysis.performance import showPerformance, showHumanPerformance, showHumanPerformanceDetailed, showPPCs, comparePrototypePerformance
 from BLnext.analysis.predictivity import showPredictivity, comparePredictivity_samples, comparePredictivity_VE, showSingleTrialCorr
 from BLnext.analysis.stats import reportSampleStats, reportdPrimeStats
@@ -38,7 +38,7 @@ def paper_figures():
     [blnext_colors.append(colors[c]) for c in [1, -1, 0]]
 
     control_colors =[]
-    [control_colors.append(colors[c]) for c in [3, 6, 4]]
+    [control_colors.append(colors[c]) for c in [3, 6, 4, 3, 3]]
 
     human_color = []
     [human_color.append(colors[c]) for c in [2]]
@@ -67,6 +67,11 @@ def paper_figures():
               'Power': {'Alpha': [0.96, 0.75], 'Beta': 0.15}}
 
     controlModels = ['bl', 'b', 'b_d']
+    adaptationControlModels = {'bl': {'model':'bl','Alpha': [0], 'Beta': 0},
+                    'b':  {'model':'b','Alpha': [0], 'Beta': 0},
+                    'b_d': {'model':'b_d','Alpha': [0], 'Beta': 0},
+                    'bl_Exponential': {'model': 'bl', 'Alpha': [0.96], 'Beta': 0.7},
+                    'bl_Power': {'model': 'bl', 'Alpha': [0.96, 0.75], 'Beta': 0.15},}
 
     # Samples per image for simulations
     samples = np.arange(1, 13)
@@ -88,8 +93,10 @@ def paper_figures():
     showExamplePrototypeTrace({'NoAdaptation': {'Alpha': [0], 'Beta': 0}}, samples=4, colors=[(0.5, 0.5, 0.5)])
 
     showPPCs({'NoAdaptation': {'Alpha': [0], 'Beta': 0}}, [8], colors=sdt_colors)
-
+    _logger.info("Figure: Ecoset performance")
     showPerformanceEcoset(models, samples, 'Ecoset-performance_BLnext', colors=all_colors)
+    showPerformanceEcoset_v2(adaptationControlModels, samplesControl, 'Ecoset-performance_BLnetAdaptation',
+                             colors=control_colors, dashes=['', '', '', (4, 1.5), (1, 1)])
 
     _logger.info("Figure: RSVP performance for humans")
     showHumanPerformance(colors=human_color)

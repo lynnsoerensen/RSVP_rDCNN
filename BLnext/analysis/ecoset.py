@@ -11,6 +11,8 @@ import joblib
 
 from BLnext.models.blnext import makeModel_blnext
 from BLnext.models.controls import makeModel_control
+from BLnext.models.controls_adaptation import makeModel_control_adaptation
+
 
 from BLnext.analysis.trials import loadPretrainedCategories
 from rcnn_sat import preprocess_image
@@ -113,8 +115,7 @@ def getDesign(n=500, num_images=6, image_dir='/mnt/Googolplex/ecoset/test', seed
 
 
 
-def perform_isolatedImages(model_name, sample, dataset='ecoset'):
-
+def perform_isolatedImages(model_name, dataset='ecoset', alphas=[0], beta=0):
 
     # load the design
     num_images = 6
@@ -122,7 +123,11 @@ def perform_isolatedImages(model_name, sample, dataset='ecoset'):
                        filename=Path(__file__).parent.parent / 'results' / 'EcosetDesign.pkl')
 
     # load the model
-    model = makeModel_control(model_name,  trainingSet=dataset)
+    if beta == 0:
+        model = makeModel_control(model_name,  trainingSet=dataset)
+    else:
+        # Control models with adaptation
+        model = makeModel_control_adaptation(model_name, trainingSet=dataset, alphas=alphas, beta=beta)
 
     np.random.seed(5)
     if model_name.startswith('bl'):
@@ -143,6 +148,7 @@ def perform_isolatedImages(model_name, sample, dataset='ecoset'):
         # Compute accuracies
 
         if model_name.startswith('bl'):
+
             for t in range(len(predictions)):
                 accuracies_top1[idx, t] = top_k_accuracy_score(np.array(targets), np.squeeze(predictions[t]), k=1,
                                                        labels=np.arange(predictions[0].shape[-1], dtype='int'))
@@ -154,11 +160,6 @@ def perform_isolatedImages(model_name, sample, dataset='ecoset'):
             accuracies_top5[idx] = top_k_accuracy_score(np.array(targets), predictions, k=5,
                                                            labels=np.arange(predictions.shape[-1], dtype='int'))
 
-        # This is to achieve compatibility for both B and BL models
-        #if len(np.array(predictions).shape) == 2:
-        #    predictions = np.array(predictions)[np.newaxis,:,:] # introduces an empty time dimension.
-        #else:
-        #    predictions = np.array(predictions)
 
     tracker = {}
 
@@ -213,42 +214,52 @@ def perform_sequentialImages(model_name, samples, offset=4, dataset='ecoset',alp
 
 def collectPerformance(models, samples):
     data = []
-    for model in models:
-
+    for model_name in models:
+        model = models[model_name]['model']
         for sample in samples:
 
-            if model in ['b', 'b_d']:  # Only evaluate these models once since they don't have any time steps.
+            if model in ['b', 'b_d', 'bl']:  # Only evaluate these models once since they don't have any time steps.
                 sample_current = 1
             else:
                 sample_current = sample
 
-            if (model =='bl') & (sample > 8):
+            if (model =='bl') & (sample >= 8):
                 pass
             else:
                 file_name = Path(
-                    __file__).parent.parent / 'results' / f"Ecoset-performance_{model}_Samples-{sample_current}.pkl"
+                    __file__).parent.parent / 'results' / f"Ecoset-performance_{model_name}_Samples-{sample_current}.pkl"
 
                 if file_name.is_file():
                     # Check if this exists already
                     tracker = joblib.load(file_name)
                 else:
                     # Otherwise, run the experiment
-                    print('Evaluating ' + model + ' model with ' + str(sample) + ' samples ')
-                    if model in ['b', 'b_d', 'bl']:
-                        tracker = perform_isolatedImages(model, sample)
-                    else:
-                        tracker = perform_sequentialImages(model, sample, alphas=models[model]['Alpha'],
-                                                           beta=models[model]['Beta'])
+                    print('Evaluating ' + model_name + ' model with ' + str(sample) + ' samples ')
+                    if model == 'bl':
+                        tracker = perform_isolatedImages(model, alphas=models[model_name]['Alpha'],
+                                                           beta=models[model_name]['Beta'])
+                    elif (model in ['b', 'b_d']) & (models[model_name]['Beta'] == 0):
 
-                    tracker['model'] = model
+                        tracker = perform_isolatedImages(model, alphas=models[model_name]['Alpha'],
+                                                         beta=models[model_name]['Beta'])
+
+                    else:
+                        tracker = perform_sequentialImages(model, sample, alphas=models[model_name]['Alpha'],
+                                                           beta=models[model_name]['Beta'])
+
+                    tracker['model'] = model_name
                     tracker['samples'] = sample
                     joblib.dump(tracker, file_name, compress=True)
 
-                data.append({'Model': model, 'Samples': sample, 'accuracy_top1': tracker['accuracy_top1'].mean(),
+                if model == 'bl':
+                    data.append(
+                        {'Model': model_name, 'Samples': sample, 'accuracy_top1': tracker['accuracy_top1'][:, sample-1].mean(),
+                         'accuracy_top5': tracker['accuracy_top5'][:, sample-1].mean()})
+                else:
+                    data.append({'Model': model_name, 'Samples': sample, 'accuracy_top1': tracker['accuracy_top1'].mean(),
                              'accuracy_top5': tracker['accuracy_top5'].mean()})
 
     return pd.DataFrame(data)
-
 
 def collectItemCorrs(models, samples):
     data = []
@@ -315,6 +326,40 @@ def showPerformanceEcoset(models, samples, figureName, data=None, colors=None):
 
     plt.savefig(fig_dir/ f"{figureName}.pdf", dpi=300, transparent=True)
     plt.savefig(fig_dir/ f"{figureName}.png")
+
+
+def showPerformanceEcoset_v2(models, samples, figureName, data=None, colors=None, dashes = False ):
+    data = data if data is not None else collectPerformance(models, samples)
+
+    fig_dir = Path(__file__).parent.parent / 'figures'
+
+    # Make figure
+    if colors is not None:
+        sns.set_palette(np.array(colors))
+
+    markers = ['o' for m in range(len(models))]
+
+    fig, ax = plt.subplots(figsize=(6.5*cm,8*cm), sharey=True)#(6.3*cm, 6.8*cm))
+
+    sns.lineplot(data=data, style='Model', hue='Model', x='Samples', y='accuracy_top5', ax=ax,
+                 dashes=dashes, markers=markers, legend=False)
+
+    ax.set_xticks([1, 2, 3, 4, 5, 6, 7, 8])#, 10, 12])
+    ax.set_yticks([0.6, 0.7, 0.8, 0.9, 1])
+
+    #ax.set_ylim([-0.15, 3])
+    ax.set_ylabel("Top5 accuracy")
+    ax.set_xlabel("Model steps/image")
+
+    #ax.axhline(1/565, c='gray', ls='--', alpha=0.4)
+
+    ax.set_title('Object recognition\n(Ecoset test set)', fontweight='bold', fontsize=10)
+    sns.despine()
+    plt.tight_layout()
+
+    plt.savefig(fig_dir/ f"{figureName}.pdf", dpi=300, transparent=True)
+    plt.savefig(fig_dir/ f"{figureName}.png")
+
 
 
 def showItemCorrsEcoset(models, samples, figureName, data=None, colors=None):

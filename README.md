@@ -1,7 +1,7 @@
 # Mechanisms of human dynamic object recognition revealed by sequential deep neural networks
 by Lynn K.A. Sörensen, Sander M. Bohté, Dorina de Jong, Heleen A. Slagter, & H. Steven Scholte
 
-*Last updated: September 30th, 2022*
+*Last updated: April 19th, 2023*
 
 ![](BLnext/figures/Figures_paper_Figure1.png)
 This figure is part of this [preprint](https://www.biorxiv.org/content/10.1101/2022.04.06.487259v2).
